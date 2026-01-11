@@ -1,0 +1,49 @@
+// Example: Connection Manager
+// Demonstrates reconnection logic, keepalive, and error handling
+
+fsm ConnectionManager {
+    // Timers
+    timer connect_timeout = 10000 -> ConnectTimeout
+    timer keepalive = 30000 -> KeepaliveTick periodic
+    timer reconnect_delay = 5000 -> ReconnectTimer
+
+    // Initial state
+    [*] --> Disconnected
+
+    // States
+    state Disconnected: "No active connection" {
+        entry / reset_connection()
+    }
+
+    state Connecting: "Establishing connection" {
+        entry / initiate_connection()
+        entry / start_timer(connect_timeout)
+        exit / stop_timer(connect_timeout)
+    }
+
+    state Connected: "Connection active" {
+        entry / start_timer(keepalive)
+        exit / stop_timer(keepalive)
+        KeepaliveTick / send_keepalive()
+    }
+
+    state Reconnecting: "Waiting to reconnect" {
+        entry / start_timer(reconnect_delay)
+        exit / stop_timer(reconnect_delay)
+    }
+
+    // Happy path
+    Disconnected --> Connecting : Connect
+    Connecting --> Connected : ConnectionEstablished / on_connected()
+
+    // Error handling
+    Connecting --> Disconnected : ConnectTimeout / log_timeout()
+    Connecting --> Disconnected : ConnectionFailed / log_failure()
+    Connected --> Reconnecting : ConnectionLost / on_disconnected()
+    Reconnecting --> Connecting : ReconnectTimer
+
+    // Manual disconnect
+    Connected --> Disconnected : Disconnect / graceful_close()
+    Connecting --> Disconnected : Cancel
+    Reconnecting --> Disconnected : Cancel
+}

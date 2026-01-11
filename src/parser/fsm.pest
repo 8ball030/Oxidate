@@ -1,0 +1,126 @@
+// FSM DSL Grammar
+// Open Source - Royalty Free
+
+file = { SOI ~ fsm_definition* ~ EOI }
+
+fsm_definition = { 
+    "fsm" ~ identifier ~ "{" ~ fsm_body ~ "}"
+}
+
+fsm_body = { fsm_item* }
+
+fsm_item = { 
+    initial_state 
+    | timer_def
+    | choice_def
+    | state_with_body
+    | state_simple
+    | transition 
+}
+
+initial_state = { "[*]" ~ arrow ~ identifier }
+
+// ============================================================================
+// TIMER DEFINITIONS
+// ============================================================================
+// Syntax: timer <name> = <duration_ms> -> <event> [periodic]
+// Example: timer blink_timer = 500 -> Tick periodic
+//          timer timeout = 3000 -> Timeout
+
+timer_def = {
+    "timer" ~ identifier ~ "=" ~ number ~ arrow ~ identifier ~ timer_mode?
+}
+
+timer_mode = { "periodic" | "oneshot" }
+
+number = @{ ASCII_DIGIT+ }
+
+// ============================================================================
+// CHOICE/DECISION POINTS
+// ============================================================================
+// Syntax: choice <name> {
+//           [guard1] -> State1 / action1
+//           [guard2] -> State2
+//           [else] -> DefaultState
+//         }
+
+choice_def = {
+    "choice" ~ identifier ~ "{" ~ choice_branch+ ~ "}"
+}
+
+choice_branch = {
+    guard ~ arrow ~ identifier ~ action?
+}
+
+// ============================================================================
+// STATE DEFINITIONS
+// ============================================================================
+
+state_with_body = {
+    "state" ~ identifier ~ (":" ~ description)? ~ "{" ~ state_body_item* ~ "}"
+}
+
+state_simple = {
+    "state" ~ identifier ~ (":" ~ description)?
+}
+
+description = @{ (!("{" | NEWLINE) ~ ANY)+ }
+
+state_body_item = {
+    entry_action
+    | exit_action
+    | timer_start
+    | timer_stop
+    | internal_transition
+    | internal_action
+}
+
+entry_action = { "entry" ~ "/" ~ action_call }
+exit_action = { "exit" ~ "/" ~ action_call }
+
+// Timer control in states
+// Syntax: start_timer(<timer_name>)
+//         stop_timer(<timer_name>)
+timer_start = { "start_timer" ~ "(" ~ identifier ~ ")" }
+timer_stop = { "stop_timer" ~ "(" ~ identifier ~ ")" }
+
+// Internal transition (handles event without leaving state)
+// Syntax: <event> [guard] / action
+internal_transition = { identifier ~ guard? ~ "/" ~ action_call }
+
+// Legacy internal action
+internal_action = { identifier ~ "/" ~ action_call }
+
+action_call = { identifier ~ ("(" ~ params? ~ ")")? }
+params = { identifier ~ ("," ~ identifier)* }
+
+// ============================================================================
+// TRANSITIONS
+// ============================================================================
+// Regular: State1 -> State2 : event [guard] / action
+// To choice: State1 -> <<choice_name>> : event
+// Self-loop: State1 -> State1 : event / action
+
+transition = {
+    source ~ arrow ~ target ~ (":" ~ transition_label)?
+}
+
+source = { identifier | "[*]" }
+target = { choice_target | identifier | "[*]" }
+choice_target = { "<<" ~ identifier ~ ">>" }
+arrow = { "-->" | "->" }
+
+transition_label = {
+    event? ~ guard? ~ action?
+}
+
+event = { identifier }
+guard = { "[" ~ guard_expr ~ "]" }
+guard_expr = @{ (!("]" | "[") ~ ANY)+ }
+action = { "/" ~ action_call }
+
+identifier = @{ (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")* }
+
+WHITESPACE = _{ " " | "\t" | NEWLINE }
+NEWLINE = _{ "\r\n" | "\n" | "\r" }
+COMMENT = _{ "//" ~ (!NEWLINE ~ ANY)* | "/*" ~ (!"*/" ~ ANY)* ~ "*/" }

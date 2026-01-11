@@ -1,0 +1,33 @@
+// Example: Traffic Light FSM
+// A simple traffic light controller demonstrating timers and state transitions
+
+fsm TrafficLight {
+    // Timer definitions
+    timer red_timer = 5000 -> RedExpired
+    timer yellow_timer = 2000 -> YellowExpired  
+    timer green_timer = 4000 -> GreenExpired
+
+    // Initial state
+    [*] --> Red
+
+    // State definitions with entry actions
+    state Red: "Stop - vehicles must wait" {
+        entry / display_red()
+        entry / start_timer(red_timer)
+    }
+
+    state Yellow: "Caution - prepare to stop" {
+        entry / display_yellow()
+        entry / start_timer(yellow_timer)
+    }
+
+    state Green: "Go - vehicles may proceed" {
+        entry / display_green()
+        entry / start_timer(green_timer)
+    }
+
+    // Transitions triggered by timer events
+    Red --> Green : RedExpired
+    Green --> Yellow : GreenExpired
+    Yellow --> Red : YellowExpired
+}

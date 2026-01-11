@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Oxidate
+Comment=FSM visualization and code generator
+Exec=oxidate
+Icon=oxidate
+Terminal=false
+Categories=Development;Utility;

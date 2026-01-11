@@ -1,0 +1,51 @@
+// Example: Form Submission with Choice Points
+// Demonstrates choice points for conditional branching
+
+fsm FormSubmission {
+    // Initial state
+    [*] --> Editing
+
+    // States
+    state Editing: "User is filling the form" {
+        DataChanged / validate_field()
+    }
+
+    state Validating: "Running validation" {
+        entry / run_full_validation()
+    }
+
+    state Submitting: "Sending to server" {
+        entry / send_to_server()
+    }
+
+    state Success: "Submission complete" {
+        entry / show_success_message()
+        entry / clear_form()
+    }
+
+    state Error: "Submission failed" {
+        entry / show_error_message()
+    }
+
+    // Choice points for conditional branching
+    choice ValidationResult {
+        [all_fields_valid] -> Submitting
+        [else] -> Editing / highlight_errors()
+    }
+
+    choice SubmitResult {
+        [response.is_success()] -> Success
+        [response.is_retryable()] -> Submitting / increment_retry()
+        [else] -> Error / log_error()
+    }
+
+    // Transitions
+    Editing --> Validating : Submit
+    Validating --> <<ValidationResult>> : ValidationComplete
+    Submitting --> <<SubmitResult>> : ResponseReceived
+    
+    // Recovery
+    Error --> Editing : Retry
+    Success --> Editing : NewForm
+    Success --> [*] : Done
+}

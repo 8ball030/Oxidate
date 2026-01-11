@@ -1,0 +1,37 @@
+// Example: Door Lock System
+// Demonstrates guards, multiple event sources, and alarm states
+
+fsm DoorLock {
+    // Auto-lock timer
+    timer auto_lock = 30000 -> AutoLock
+
+    // Initial state
+    [*] --> Locked
+
+    // State definitions
+    state Locked: "Door is secured" {
+        entry / engage_lock()
+        entry / arm_alarm()
+    }
+
+    state Unlocked: "Door can be opened" {
+        entry / disengage_lock()
+        entry / start_timer(auto_lock)
+        exit / stop_timer(auto_lock)
+    }
+
+    state Alarming: "Intrusion detected!" {
+        entry / sound_alarm()
+        entry / notify_security()
+    }
+
+    // Normal operation
+    Locked --> Unlocked : ValidCode
+    Unlocked --> Locked : LockButton
+    Unlocked --> Locked : AutoLock
+
+    // Security events
+    Locked --> Alarming : TamperDetected
+    Locked --> Alarming : InvalidCode [attempts > 3]
+    Alarming --> Locked : AlarmReset [authorized]
+}
