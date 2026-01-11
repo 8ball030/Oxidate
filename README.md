@@ -256,24 +256,24 @@ oxidate/
 
 ```mermaid
 flowchart TB
-    subgraph GUI["GUI (egui)"]
-        E[Editor Panel]
-        V[Visualizer Panel]
-        S[Simulator Controls]
-    end
+subgraph GUI["GUI - egui"]
+E["Editor Panel"]
+V["Visualizer Panel"]
+S["Simulator Controls"]
+end
 
-    P[Parser (pest DSL)]
-    F["FsmDefinition<br/>(states, transitions, etc)"]
-    L[Layout (Dagre/JS)]
-    C[Codegen (Rust)]
-    Sim[Simulation Runtime]
+P["Parser - pest DSL"]
+F["FsmDefinition<br/>states, transitions, etc"]
+L["Layout - Dagre/JS"]
+C["Codegen - Rust"]
+Sim["Simulation Runtime"]
 
-    E --> P --> F
-    F --> C
-    F --> L --> V
-    S --> Sim
-    F --> Sim
-    Sim --> V
+E --> P --> F
+F --> C
+F --> L --> V
+S --> Sim
+F --> Sim
+Sim --> V
 ```
 
 ### Layout Pipeline
