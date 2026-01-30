@@ -201,7 +201,20 @@ fn generate_fsm_impl(fsm: &FsmDefinition) -> String {
     code.push_str(&format!("impl<T: {}Actions> {}<T> {{\n", fsm.name, fsm.name));
     
     // Constructor
-    code.push_str("    pub fn new(context: T) -> Self {\n");
+    code.push_str("    pub fn new(mut context: T) -> Self {\n");
+    
+    // Call entry actions of initial state
+    if let Some(initial_state_name) = &fsm.initial_state {
+        if let Some(state) = fsm.states.iter().find(|s| &s.name == initial_state_name) {
+            for entry_action in &state.entry_actions {
+                code.push_str(&format!(
+                    "        context.{}();\n",
+                    to_snake_case(&entry_action.name)
+                ));
+            }
+        }
+    }
+    
     code.push_str(&format!("        Self {{\n"));
     code.push_str(&format!("            state: {}State::{},\n", fsm.name, initial_state));
     code.push_str("            context,\n");
@@ -233,7 +246,7 @@ fn generate_fsm_impl(fsm: &FsmDefinition) -> String {
 fn generate_process_event(fsm: &FsmDefinition) -> String {
     let mut code = String::new();
     
-    code.push_str(&format!("    pub fn process(&mut self, event: {}Event) {{\n", fsm.name));
+    code.push_str(&format!("    pub fn process(&mut self, event: {}Event) -> bool {{\n", fsm.name));
     code.push_str("        match (self.state, event) {\n");
     
     for transition in &fsm.transitions {
@@ -293,12 +306,13 @@ fn generate_process_event(fsm: &FsmDefinition) -> String {
                 }
             }
             
+            code.push_str("                true\n");
             code.push_str("            }\n");
         }
     }
     
     // Default case - no transition
-    code.push_str("            _ => {} // No transition\n");
+    code.push_str("            _ => false // No transition\n");
     code.push_str("        }\n");
     code.push_str("    }\n");
     
